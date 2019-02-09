@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy
 from tqdm import tqdm
 
-REGEX_TOKEN = re.compile(r'(?<![#@])\b[a-z]{1,15}\b')
+REGEX_TOKEN = re.compile(r'(?<![#@])\b[^\W\d_]{1,15}\b', re.UNICODE)
 REGEX_URL = re.compile(
     r"(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})")
 SEPARATOR = "_"

@@ -14,6 +14,10 @@ class TextPreProcessor:
     def __init__(self, **kwargs):
         """
         Kwargs:
+            onstart (list): list of functions run before all other preprocessing steps
+                each function should have a single string argument and should return
+                transformed text
+
             omit (list): choose what tokens that you want to omit from the text.
                 possible values: ['email', 'percent', 'money', 'phone', 'user',
                     'time', 'url', 'date', 'hashtag']
@@ -66,20 +70,19 @@ class TextPreProcessor:
                 spell correction after the normalization of elongated words.
                 * significantly affects performance (speed)
 
-            spell_correction (bool): choose if you want to perform
-                spell correction to the text
-                * significantly affects performance (speed)
-
             fix_text (bool): choose if you want to fix bad unicode terms and
                 html entities.
+
+            correction_method (function): a single string argument function
+                for correcting text
         """
+        self.onstart = kwargs.get("onstart", list())
         self.omit = kwargs.get("omit", {})
         self.backoff = kwargs.get("normalize", {})
         self.include_tags = kwargs.get("annotate", {})
         self.unpack_contractions = kwargs.get("unpack_contractions", False)
         self.tokenizer = kwargs.get("tokenizer", None)
         self.dicts = kwargs.get("dicts", None)
-        self.spell_correction = kwargs.get("spell_correction", False)
         self.spell_correct_elong = kwargs.get("spell_correct_elong", False)
         self.fix_text = kwargs.get("fix_bad_unicode", False)
         self.unpack_hashtags = kwargs.get("unpack_hashtags", False)
@@ -87,6 +90,7 @@ class TextPreProcessor:
         self.corrector_corpus = kwargs.get("corrector", "english")
         self.all_caps_tag = kwargs.get("all_caps_tag", "wrap")
         self.mode = kwargs.get("mode", "normal")
+        self.correction_method = kwargs.get("correction_method", None)
 
         if self.unpack_hashtags:
             self.segmenter = Segmenter(corpus=self.segmenter_corpus)
@@ -164,8 +168,7 @@ class TextPreProcessor:
 
         # try to spell correct the word
         if self.spell_correct_elong:
-            text = self.spell_corrector.correct_word(text, assume_wrong=True,
-                                                     fast=True)
+            text = self.spell_corrector.correct_word(text, assume_wrong=True, fast=True)
             # with open("analysis/spell_corrector_" +
             # self.corrector_corpus + ".txt", "a") as f:
             #     f.write(m.group() + " - " + text + "\n")
@@ -265,14 +268,17 @@ class TextPreProcessor:
         if self.fix_text:
             doc = ftfy.fix_text(doc)
 
+        for func in self.onstart:
+            doc = func(doc)
+
         ###########################
         # BACKOFF & OMIT
         ###########################
         for item in self.backoff:
             # better add an extra space after the match.
             # Just to be safe. extra spaces will be normalized later anyway
-            doc = self.regexes[item].sub(lambda m: " " + "<" + item + ">" + " ",
-                                         doc)
+            doc = self.regexes[item].sub(lambda m: " " + "<" + item + ">" + " ",  doc)
+
         for item in self.omit:
             doc = doc.replace("<" + item + ">", '')
 
@@ -283,19 +289,24 @@ class TextPreProcessor:
             doc = self.regexes["hashtag"].sub(
                 lambda w: self.handle_hashtag_match(w), doc)
 
+        if self.correction_method is not None:
+            doc = self.correction_method(doc)
+
         ###########################
         # handle special cases
         ###########################
         if self.mode != "fast":
             if "allcaps" in self.include_tags:
                 doc = self.regexes["allcaps"].sub(
-                    lambda w: self.handle_generic_match(w, "allcaps",
-                                                        mode=self.all_caps_tag),
-                    doc)
+                    lambda w: self.handle_generic_match(w, "allcaps", mode=self.all_caps_tag), doc)
 
             if "elongated" in self.include_tags:
                 doc = self.regexes["elongated"].sub(
                     lambda w: self.handle_elongated_match(w), doc)
+
+            if "censored" in self.include_tags:
+                doc = self.regexes["censored"].sub(
+                    lambda w: self.handle_generic_match(w, "censored"), doc)
 
             if "repeated" in self.include_tags:
                 doc = self.regexes["repeat_puncts"].sub(
@@ -304,10 +315,6 @@ class TextPreProcessor:
             if "emphasis" in self.include_tags:
                 doc = self.regexes["emphasis"].sub(
                     lambda w: self.handle_emphasis_match(w), doc)
-
-            if "censored" in self.include_tags:
-                doc = self.regexes["censored"].sub(
-                    lambda w: self.handle_generic_match(w, "censored"), doc)
 
         ###########################
         # unpack contractions: i'm -> i am, can't -> can not...

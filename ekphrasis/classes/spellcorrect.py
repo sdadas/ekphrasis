@@ -5,7 +5,7 @@ from functools import lru_cache
 
 from ekphrasis.utils.helpers import read_stats
 
-REGEX_TOKEN = re.compile(r'\b[a-z]{2,}\b')
+REGEX_TOKEN = re.compile(r'\b[^\W\d_]{2,}\b', re.UNICODE)
 
 
 class SpellCorrector:
@@ -104,14 +104,12 @@ class SpellCorrector:
     def correct_text(self, text):
         """
         Correct all the words within a text, returning the corrected text."""
-
-        return re.sub('[a-zA-Z]+', self.correct_match, text)
+        return re.sub('[^\W\d_]+', self.correct_match, text, flags=re.UNICODE)
 
     def correct_match(self, match):
         """
         Spell-correct word in match, and preserve proper upper/lower/title case.
         """
-
         word = match.group()
         return self.case_of(word)(self.correct(word.lower()))
 
@@ -119,7 +117,6 @@ class SpellCorrector:
         """
         Spell-correct word in match, and preserve proper upper/lower/title case.
         """
-
         return self.case_of(word)(self.correct(word.lower(), assume_wrong=assume_wrong, fast=fast))
 
     @staticmethod

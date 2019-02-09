@@ -72,7 +72,7 @@ def listdir_nohidden(path):
 def download_statistics():
     stats_dir = get_stats_dir()
     print("Word statistics files not found!\nDownloading...", end=" ")
-    url = "https://www.dropbox.com/s/a84otqrg6u1c5je/stats.zip?dl=1"
+    url = "https://www.dropbox.com/s/5nc8i6nbwwqaj19/stats.zip?dl=1"
     urlretrieve(url, "stats.zip")
     print("done!")
 
@@ -95,5 +95,15 @@ def product(nums):
     Return the product of a sequence of numbers.
     """
     return reduce(operator.mul, nums, 1)
+
+
+def case_of(text):
+        """
+        Return the case-function appropriate for text: upper, lower, title, or just str.
+        """
+        return (str.upper if text.isupper() else
+                str.lower if text.islower() else
+                str.title if text.istitle() else
+                str)
 
 # check_stats_files()

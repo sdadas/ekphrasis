@@ -10,7 +10,7 @@ The Segmenter Class implements the Viterbi algorithm for word segmentation.
 Based on CH14 from the book Beautiful Data (Segaran and Hammerbacher, 2009)
 """
 
-REGEX_TOKEN = re.compile(r'\b[a-z]{2,}\b')
+REGEX_TOKEN = re.compile(r'\b[^\W\d_]{2,}\b', re.UNICODE)
 NGRAM_SEP = "_"  # todo: move to values
 
 
