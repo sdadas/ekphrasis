@@ -62,12 +62,13 @@ class PolishCorrector:
 
     @staticmethod
     def generate_candidates(word):
+        if len(word) > 14: return []
         res = [""]
         segments: List = PolishCorrector.get_possible_corrections(word)
         for segment in segments:
             res_copy = res[:]
             res = []
-            values = segment if len(res_copy) < 100 else segment[0]
+            values = segment if len(res_copy) < 100 else [segment[0]]
             for value in values:
                 res.extend([text + value for text in res_copy])
         return res
